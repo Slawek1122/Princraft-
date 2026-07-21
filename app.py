@@ -28,7 +28,11 @@ SMTP_PORT = 587
 def load_data():
     if os.path.exists(DATA_FILE):
         try:
-            return pd.read_excel(DATA_FILE)
+            df = pd.read_excel(DATA_FILE)
+            for col in COLUMNS:
+                if col not in df.columns:
+                    df[col] = ""
+            return df[COLUMNS]
         except Exception:
             return pd.DataFrame(columns=COLUMNS)
     return pd.DataFrame(columns=COLUMNS)
@@ -82,6 +86,10 @@ def send_email(from_email: str, password: str, to_email: str, df: pd.DataFrame) 
         return False
 
 
+def parse_locations(text: str) -> list:
+    return [line.strip() for line in text.strip().splitlines() if line.strip()]
+
+
 # ================== UI ==================
 st.set_page_config(
     page_title="Princraft Warehouse",
@@ -90,10 +98,8 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Dark / professional theme CSS optimized for tablet
 st.markdown("""
 <style>
-    /* background */
     .stApp {
         background-color: #0f172a;
         color: #e2e8f0;
@@ -115,7 +121,6 @@ st.markdown("""
         margin-bottom: 0.3rem !important;
     }
     
-    /* buttons */
     .stButton > button {
         width: 100%;
         height: 3.8rem;
@@ -130,7 +135,6 @@ st.markdown("""
         background-color: #2563eb !important;
     }
     
-    /* inputs */
     .stTextInput > div > div > input,
     .stNumberInput > div > div > input {
         font-size: 1.25rem !important;
@@ -149,7 +153,6 @@ st.markdown("""
         border: 1px solid #334155 !important;
     }
     
-    /* form */
     div[data-testid="stForm"] {
         border: 2px solid #334155;
         border-radius: 16px;
@@ -157,14 +160,12 @@ st.markdown("""
         background: #1e293b;
     }
     
-    /* alerts */
     .stAlert {
         font-size: 1.15rem !important;
         padding: 1rem 1.1rem !important;
         border-radius: 12px;
     }
     
-    /* sidebar */
     section[data-testid="stSidebar"] {
         background-color: #0f172a;
         min-width: 280px;
@@ -174,17 +175,21 @@ st.markdown("""
         color: #e2e8f0 !important;
     }
     
-    /* dataframe */
     .stDataFrame {
         font-size: 1.05rem;
     }
     
-    /* download button */
     .stDownloadButton > button {
         background-color: #10b981 !important;
     }
     .stDownloadButton > button:hover {
         background-color: #059669 !important;
+    }
+    
+    button[data-baseweb="tab"] {
+        font-size: 1.15rem !important;
+        font-weight: 600 !important;
+        padding: 0.8rem 1.2rem !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -192,87 +197,111 @@ st.markdown("""
 st.title("📦 Princraft Warehouse")
 st.caption("Fast pallet entry – no double work")
 
-# ----- LOCATIONS (sidebar) -----
+# ----- SIDEBAR -----
 with st.sidebar:
-    st.header("Locations")
-    st.caption("One location per line. App suggests the next free one.")
+    st.header("Default locations")
 
-    default_locations = st.session_state.get("locations_text", "PB1G18H\nPB1G19H\nPB1G20H\nPB1G21H\nPB1G22H")
-    locations_text = st.text_area(
-        "Available locations",
-        value=default_locations,
-        height=220,
-        help="One location per line"
-    )
+    st.subheader("Full size pallet")
+    full_default = st.session_state.get("full_locations_text", "PB1G18H\nPB1G19H\nPB1G20H\nPB1G21H")
+    full_text = st.text_area("Full size locations", value=full_default, height=140, key="full_ta")
 
-    if st.button("💾 Save location list", use_container_width=True):
-        st.session_state.locations_text = locations_text
+    st.subheader("Small pallet")
+    small_default = st.session_state.get("small_locations_text", "PB2A01H\nPB2A02H\nPB2A03H\nPB2A04H")
+    small_text = st.text_area("Small locations", value=small_default, height=140, key="small_ta")
+
+    if st.button("💾 Save location lists", use_container_width=True):
+        st.session_state.full_locations_text = full_text
+        st.session_state.small_locations_text = small_text
         st.success("Saved")
 
-    available_locations = [
-        line.strip() for line in locations_text.strip().splitlines() if line.strip()
-    ]
-    st.session_state.available_locations = available_locations
+    full_locations = parse_locations(full_text)
+    small_locations = parse_locations(small_text)
+
+    st.session_state.full_locations = full_locations
+    st.session_state.small_locations = small_locations
 
     st.divider()
-    st.caption(f"Locations on list: {len(available_locations)}")
+    st.caption(f"Full size: {len(full_locations)} | Small: {len(small_locations)}")
 
-# ----- NEXT FREE LOCATION -----
 df = load_data()
 used = get_used_locations(df)
-next_free = get_next_free_location(
-    st.session_state.get("available_locations", available_locations),
-    used
-)
 
-# ----- FORM -----
-with st.form("form_pallet", clear_on_submit=False):
-    st.subheader("New pallet")
+# ----- TABS -----
+tab_full, tab_small = st.tabs(["🟦 Full size pallet", "🟧 Small pallet"])
 
-    if next_free:
-        st.info(f"Suggested free location: **{next_free}**")
-    else:
-        st.warning("No free locations left. Enter manually or add more in the sidebar.")
 
-    location = st.text_input(
-        "Warehouse location",
-        value=next_free,
-        placeholder="e.g. PB1G18H"
-    )
-    job = st.text_input("Job number")
-    order = st.text_input("Order number")
-    design = st.text_input("Design number")
+def render_form(pallet_label: str, available: list, key_prefix: str):
+    next_free = get_next_free_location(available, used)
 
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        qty_card = st.number_input("quantity card", min_value=0, step=1, value=0)
-    with col2:
-        qty_packs = st.number_input("quantity packs", min_value=0, step=1, value=0)
-    with col3:
-        total_boxes = st.number_input("total boxes", min_value=0, step=1, value=0)
+    with st.form(f"form_{key_prefix}", clear_on_submit=False):
+        st.subheader(f"New {pallet_label}")
 
-    submitted = st.form_submit_button("➕ ADD PALLET")
+        if next_free:
+            st.info(f"Suggested free location: **{next_free}**")
+        else:
+            st.warning("No free locations left. Choose manually or add more in the sidebar.")
 
-if submitted:
-    if not location.strip() or not job.strip() or not order.strip() or not design.strip():
-        st.error("Please fill in all text fields.")
-    else:
-        df = load_data()
-        new_row = {
-            "Date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "Princraft warehouse location": location.strip(),
-            "Job number": job.strip(),
-            "Order number": order.strip(),
-            "Design number": design.strip(),
-            "quantity card": int(qty_card),
-            "quantity packs": int(qty_packs),
-            "total boxes": int(total_boxes)
-        }
-        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-        save_data(df)
-        st.success(f"✅ Pallet added at location **{location.strip()}**")
-        st.balloons()
-        st.rerun()
+        options = available if available else ["(no locations defined)"]
+        default_idx = 0
+        if next_free and next_free in options:
+            default_idx = options.index(next_free)
+
+        selected = st.selectbox(
+            "Select location",
+            options=options,
+            index=default_idx,
+            key=f"select_{key_prefix}"
+        )
+
+        location = st.text_input(
+            "Or type location manually",
+            value=selected if selected != "(no locations defined)" else "",
+            placeholder="e.g. PB1G18H",
+            key=f"loc_{key_prefix}"
+        )
+
+        job = st.text_input("Job number", key=f"job_{key_prefix}")
+        order = st.text_input("Order number", key=f"order_{key_prefix}")
+        design = st.text_input("Design number", key=f"design_{key_prefix}")
+
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            qty_card = st.number_input("quantity card", min_value=0, step=1, value=0, key=f"card_{key_prefix}")
+        with col2:
+            qty_packs = st.number_input("quantity packs", min_value=0, step=1, value=0, key=f"packs_{key_prefix}")
+        with col3:
+            total_boxes = st.number_input("total boxes", min_value=0, step=1, value=0, key=f"boxes_{key_prefix}")
+
+        submitted = st.form_submit_button(f"➕ ADD {pallet_label.upper()}")
+
+    if submitted:
+        final_location = location.strip()
+        if not final_location or not job.strip() or not order.strip() or not design.strip():
+            st.error("Please fill in all text fields.")
+        else:
+            current_df = load_data()
+            new_row = {
+                "Date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "Princraft warehouse location": final_location,
+                "Job number": job.strip(),
+                "Order number": order.strip(),
+                "Design number": design.strip(),
+                "quantity card": int(qty_card),
+                "quantity packs": int(qty_packs),
+                "total boxes": int(total_boxes)
+            }
+            current_df = pd.concat([current_df, pd.DataFrame([new_row])], ignore_index=True)
+            save_data(current_df)
+            st.success(f"✅ {pallet_label} added at **{final_location}**")
+            st.balloons()
+            st.rerun()
+
+
+with tab_full:
+    render_form("Full size pallet", st.session_state.get("full_locations", full_locations), "full")
+
+with tab_small:
+    render_form("Small pallet", st.session_state.get("small_locations", small_locations), "small")
 
 # ----- PREVIEW -----
 st.divider()
@@ -291,7 +320,6 @@ else:
 
     st.caption(f"Total entries: {len(df)}")
 
-    # ----- DOWNLOAD -----
     buffer = BytesIO()
     df.to_excel(buffer, index=False)
     st.download_button(
@@ -302,7 +330,6 @@ else:
         use_container_width=True
     )
 
-    # ----- EMAIL -----
     st.divider()
     st.subheader("Send by email")
 
