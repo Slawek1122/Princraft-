@@ -56,9 +56,9 @@ def send_email(from_email: str, password: str, to_email: str, df: pd.DataFrame) 
         msg = MIMEMultipart()
         msg["From"] = from_email
         msg["To"] = to_email
-        msg["Subject"] = f"Magazyn Princraft – dane z {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+        msg["Subject"] = f"Princraft Warehouse – data from {datetime.now().strftime('%Y-%m-%d %H:%M')}"
 
-        body = "W załączniku plik Excel z danymi magazynowymi."
+        body = "Please find the warehouse data Excel file attached."
         msg.attach(MIMEText(body, "plain"))
 
         buffer = BytesIO()
@@ -78,26 +78,35 @@ def send_email(from_email: str, password: str, to_email: str, df: pd.DataFrame) 
 
         return True
     except Exception as e:
-        st.error(f"Błąd wysyłania: {e}")
+        st.error(f"Send error: {e}")
         return False
 
 
 # ================== UI ==================
 st.set_page_config(
-    page_title="Magazyn Princraft",
+    page_title="Princraft Warehouse",
     page_icon="📦",
     layout="centered",
     initial_sidebar_state="expanded"
 )
 
-# CSS mocno pod tablet / telefon
+# Dark / professional theme CSS optimized for tablet
 st.markdown("""
 <style>
-    /* ogólne */
+    /* background */
+    .stApp {
+        background-color: #0f172a;
+        color: #e2e8f0;
+    }
+    
     .block-container {
         padding-top: 1.2rem;
         padding-bottom: 2rem;
         max-width: 900px;
+    }
+    
+    h1, h2, h3, .stMarkdown, .stCaption, label {
+        color: #f1f5f9 !important;
     }
     
     h1 {
@@ -106,42 +115,63 @@ st.markdown("""
         margin-bottom: 0.3rem !important;
     }
     
-    /* przyciski */
+    /* buttons */
     .stButton > button {
         width: 100%;
         height: 3.8rem;
         font-size: 1.35rem !important;
         font-weight: 700;
         border-radius: 12px;
+        background-color: #3b82f6 !important;
+        color: white !important;
+        border: none !important;
+    }
+    .stButton > button:hover {
+        background-color: #2563eb !important;
     }
     
-    /* pola tekstowe i liczby */
+    /* inputs */
     .stTextInput > div > div > input,
     .stNumberInput > div > div > input {
         font-size: 1.25rem !important;
         padding: 0.85rem 0.9rem !important;
         border-radius: 10px !important;
+        background-color: #1e293b !important;
+        color: #f1f5f9 !important;
+        border: 1px solid #334155 !important;
     }
     
-    /* text area */
     .stTextArea textarea {
         font-size: 1.15rem !important;
         line-height: 1.5 !important;
+        background-color: #1e293b !important;
+        color: #f1f5f9 !important;
+        border: 1px solid #334155 !important;
     }
     
-    /* formularz */
+    /* form */
     div[data-testid="stForm"] {
-        border: 2px solid #d0d0d0;
+        border: 2px solid #334155;
         border-radius: 16px;
         padding: 1.5rem 1.2rem;
-        background: #fafafa;
+        background: #1e293b;
     }
     
-    /* info i warning */
+    /* alerts */
     .stAlert {
         font-size: 1.15rem !important;
         padding: 1rem 1.1rem !important;
         border-radius: 12px;
+    }
+    
+    /* sidebar */
+    section[data-testid="stSidebar"] {
+        background-color: #0f172a;
+        min-width: 280px;
+    }
+    
+    section[data-testid="stSidebar"] * {
+        color: #e2e8f0 !important;
     }
     
     /* dataframe */
@@ -149,38 +179,35 @@ st.markdown("""
         font-size: 1.05rem;
     }
     
-    /* sidebar */
-    section[data-testid="stSidebar"] {
-        min-width: 280px;
+    /* download button */
+    .stDownloadButton > button {
+        background-color: #10b981 !important;
     }
-    
-    /* camera */
-    div[data-testid="stCameraInput"] {
-        border-radius: 12px;
-        overflow: hidden;
+    .stDownloadButton > button:hover {
+        background-color: #059669 !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
-st.title("📦 Magazyn Princraft")
-st.caption("Szybkie wpisywanie palet – bez dublowania roboty")
+st.title("📦 Princraft Warehouse")
+st.caption("Fast pallet entry – no double work")
 
-# ----- LOKALIZACJE (sidebar) -----
+# ----- LOCATIONS (sidebar) -----
 with st.sidebar:
-    st.header("Lokalizacje")
-    st.caption("Jedna lokalizacja = jeden wiersz. Aplikacja proponuje następną wolną.")
+    st.header("Locations")
+    st.caption("One location per line. App suggests the next free one.")
 
     default_locations = st.session_state.get("locations_text", "PB1G18H\nPB1G19H\nPB1G20H\nPB1G21H\nPB1G22H")
     locations_text = st.text_area(
-        "Dostępne lokalizacje",
+        "Available locations",
         value=default_locations,
         height=220,
-        help="Jedna lokalizacja w wierszu"
+        help="One location per line"
     )
 
-    if st.button("💾 Zapisz listę lokalizacji", use_container_width=True):
+    if st.button("💾 Save location list", use_container_width=True):
         st.session_state.locations_text = locations_text
-        st.success("Zapisano")
+        st.success("Saved")
 
     available_locations = [
         line.strip() for line in locations_text.strip().splitlines() if line.strip()
@@ -188,9 +215,9 @@ with st.sidebar:
     st.session_state.available_locations = available_locations
 
     st.divider()
-    st.caption(f"Lokalizacji na liście: {len(available_locations)}")
+    st.caption(f"Locations on list: {len(available_locations)}")
 
-# ----- OBLICZENIE WOLNEJ LOKALIZACJI -----
+# ----- NEXT FREE LOCATION -----
 df = load_data()
 used = get_used_locations(df)
 next_free = get_next_free_location(
@@ -198,19 +225,19 @@ next_free = get_next_free_location(
     used
 )
 
-# ----- FORMULARZ -----
-with st.form("form_paleta", clear_on_submit=False):
-    st.subheader("Nowa paleta")
+# ----- FORM -----
+with st.form("form_pallet", clear_on_submit=False):
+    st.subheader("New pallet")
 
     if next_free:
-        st.info(f"Proponowana wolna lokalizacja: **{next_free}**")
+        st.info(f"Suggested free location: **{next_free}**")
     else:
-        st.warning("Brak wolnych lokalizacji. Wpisz ręcznie lub dodaj więcej w panelu bocznym.")
+        st.warning("No free locations left. Enter manually or add more in the sidebar.")
 
     location = st.text_input(
-        "Lokalizacja magazynu",
+        "Warehouse location",
         value=next_free,
-        placeholder="np. PB1G18H"
+        placeholder="e.g. PB1G18H"
     )
     job = st.text_input("Job number")
     order = st.text_input("Order number")
@@ -224,11 +251,11 @@ with st.form("form_paleta", clear_on_submit=False):
     with col3:
         total_boxes = st.number_input("total boxes", min_value=0, step=1, value=0)
 
-    submitted = st.form_submit_button("➕ DODAJ PALETĘ")
+    submitted = st.form_submit_button("➕ ADD PALLET")
 
 if submitted:
     if not location.strip() or not job.strip() or not order.strip() or not design.strip():
-        st.error("Wypełnij wszystkie pola tekstowe.")
+        st.error("Please fill in all text fields.")
     else:
         df = load_data()
         new_row = {
@@ -243,68 +270,57 @@ if submitted:
         }
         df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
         save_data(df)
-        st.success(f"✅ Dodano paletę na lokalizacji **{location.strip()}**")
+        st.success(f"✅ Pallet added at location **{location.strip()}**")
         st.balloons()
         st.rerun()
 
-# ----- APARAT (zdjęcie ticketa) -----
+# ----- PREVIEW -----
 st.divider()
-st.subheader("📷 Zdjęcie ticketa (opcjonalnie)")
-st.caption("Zrób zdjęcie paletowego ticketa. Na razie tylko podgląd – OCR można dorobić później.")
-
-photo = st.camera_input("Zrób zdjęcie ticketa", label_visibility="collapsed")
-
-if photo is not None:
-    st.image(photo, caption="Zdjęcie ticketa", use_container_width=True)
-    st.info("Zdjęcie zapisane w sesji. Możesz teraz ręcznie przepisać dane z ticketa do formularza powyżej.")
-
-# ----- PODGLĄD -----
-st.divider()
-st.subheader("Ostatnie wpisy")
+st.subheader("Recent entries")
 
 df = load_data()
 
 if df.empty:
-    st.info("Brak danych. Dodaj pierwszą paletę.")
+    st.info("No data yet. Add the first pallet.")
 else:
     st.dataframe(df.tail(10), use_container_width=True, hide_index=True)
 
-    show_all = st.checkbox("Pokaż całą tabelę")
+    show_all = st.checkbox("Show full table")
     if show_all:
         st.dataframe(df, use_container_width=True, hide_index=True)
 
-    st.caption(f"Łącznie wpisów: {len(df)}")
+    st.caption(f"Total entries: {len(df)}")
 
-    # ----- POBIERZ -----
+    # ----- DOWNLOAD -----
     buffer = BytesIO()
     df.to_excel(buffer, index=False)
     st.download_button(
-        label="📥 POBIERZ EXCEL",
+        label="📥 DOWNLOAD EXCEL",
         data=buffer.getvalue(),
-        file_name=f"magazyn_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
+        file_name=f"warehouse_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         use_container_width=True
     )
 
-    # ----- WYŚLIJ MAILEM -----
+    # ----- EMAIL -----
     st.divider()
-    st.subheader("Wyślij na maila")
+    st.subheader("Send by email")
 
-    with st.expander("Ustawienia wysyłki (Gmail)"):
-        from_email = st.text_input("Twój email (nadawca)", placeholder="twoj@gmail.com")
-        from_password = st.text_input("Hasło aplikacji Gmail", type="password", help="Nie zwykłe hasło – tylko hasło aplikacji z konta Google")
+    with st.expander("Email settings (Gmail)"):
+        from_email = st.text_input("Your email (sender)", placeholder="you@gmail.com")
+        from_password = st.text_input("Gmail App Password", type="password", help="Not your regular password – use an App Password from Google")
 
-    email_to = st.text_input("Adres email odbiorcy", placeholder="np. magazin@firma.pl")
+    email_to = st.text_input("Recipient email", placeholder="e.g. warehouse@company.com")
 
-    if st.button("📧 WYŚLIJ EXCEL", use_container_width=True):
+    if st.button("📧 SEND EXCEL", use_container_width=True):
         if not from_email or not from_password:
-            st.warning("Podaj swój email i hasło aplikacji w ustawieniach powyżej.")
+            st.warning("Enter your email and app password in the settings above.")
         elif not email_to or "@" not in email_to:
-            st.warning("Podaj poprawny adres email odbiorcy.")
+            st.warning("Enter a valid recipient email.")
         else:
-            with st.spinner("Wysyłanie..."):
+            with st.spinner("Sending..."):
                 if send_email(from_email.strip(), from_password, email_to.strip(), df):
-                    st.success(f"Wysłano na {email_to}")
+                    st.success(f"Sent to {email_to}")
 
 st.divider()
-st.caption("Aplikacja magazynowa • dane zapisane lokalnie w data.xlsx")
+st.caption("Warehouse app • data saved locally in data.xlsx")
