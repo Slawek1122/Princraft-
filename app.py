@@ -264,7 +264,7 @@ def render_form_with_list(pallet_label: str, available: list, key_prefix: str):
 
         location = st.text_input(
             "Or type location manually",
-            value=selected if selected != "(no locations defined)" else "",
+            value="",
             placeholder="e.g. PB1G18H",
             key=f"loc_{key_prefix}"
         )
@@ -284,7 +284,8 @@ def render_form_with_list(pallet_label: str, available: list, key_prefix: str):
         submitted = st.form_submit_button(f"➕ ADD {pallet_label.upper()}")
 
     if submitted:
-        final_location = location.strip()
+        # if manual field empty -> use selected from list
+        final_location = location.strip() if location.strip() else (selected if selected != "(no locations defined)" else "")
         if not final_location or not job.strip() or not order.strip() or not design.strip():
             st.error("Please fill in all text fields.")
         else:
