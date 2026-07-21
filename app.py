@@ -369,6 +369,27 @@ st.subheader("Recent entries")
 
 df = load_data()
 
+# Start new list button
+col_a, col_b = st.columns([3, 1])
+with col_b:
+    if st.button("🗑️ Start new list", use_container_width=True, help="Clear all data and start fresh"):
+        st.session_state["confirm_clear"] = True
+
+if st.session_state.get("confirm_clear"):
+    st.warning("This will delete ALL current entries. Are you sure?")
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("✅ Yes, clear everything", use_container_width=True):
+            if os.path.exists(DATA_FILE):
+                os.remove(DATA_FILE)
+            st.session_state["confirm_clear"] = False
+            st.success("List cleared. Starting fresh.")
+            st.rerun()
+    with c2:
+        if st.button("❌ Cancel", use_container_width=True):
+            st.session_state["confirm_clear"] = False
+            st.rerun()
+
 if df.empty:
     st.info("No data yet. Add the first pallet.")
 else:
