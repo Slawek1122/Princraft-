@@ -227,10 +227,10 @@ df = load_data()
 used = get_used_locations(df)
 
 # ----- TABS -----
-tab_full, tab_small = st.tabs(["🟦 Full size pallet", "🟧 Small pallet"])
+tab_full, tab_small, tab_aldi = st.tabs(["🟦 Full size pallet", "🟧 Small pallet", "🟨 Aldi"])
 
 
-def render_form(pallet_label: str, available: list, key_prefix: str):
+def render_form_with_list(pallet_label: str, available: list, key_prefix: str):
     next_free = get_next_free_location(available, used)
 
     with st.form(f"form_{key_prefix}", clear_on_submit=False):
@@ -297,11 +297,61 @@ def render_form(pallet_label: str, available: list, key_prefix: str):
             st.rerun()
 
 
+def render_form_manual(pallet_label: str, key_prefix: str):
+    with st.form(f"form_{key_prefix}", clear_on_submit=False):
+        st.subheader(f"New {pallet_label}")
+
+        location = st.text_input(
+            "Warehouse location",
+            placeholder="Type location manually",
+            key=f"loc_{key_prefix}"
+        )
+
+        job = st.text_input("Job number", key=f"job_{key_prefix}")
+        order = st.text_input("Order number", key=f"order_{key_prefix}")
+        design = st.text_input("Design number", key=f"design_{key_prefix}")
+
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            qty_card = st.number_input("quantity card", min_value=0, step=1, value=0, key=f"card_{key_prefix}")
+        with col2:
+            qty_packs = st.number_input("quantity packs", min_value=0, step=1, value=0, key=f"packs_{key_prefix}")
+        with col3:
+            total_boxes = st.number_input("total boxes", min_value=0, step=1, value=0, key=f"boxes_{key_prefix}")
+
+        submitted = st.form_submit_button(f"➕ ADD {pallet_label.upper()}")
+
+    if submitted:
+        final_location = location.strip()
+        if not final_location or not job.strip() or not order.strip() or not design.strip():
+            st.error("Please fill in all text fields.")
+        else:
+            current_df = load_data()
+            new_row = {
+                "Date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "Princraft warehouse location": final_location,
+                "Job number": job.strip(),
+                "Order number": order.strip(),
+                "Design number": design.strip(),
+                "quantity card": int(qty_card),
+                "quantity packs": int(qty_packs),
+                "total boxes": int(total_boxes)
+            }
+            current_df = pd.concat([current_df, pd.DataFrame([new_row])], ignore_index=True)
+            save_data(current_df)
+            st.success(f"✅ {pallet_label} added at **{final_location}**")
+            st.balloons()
+            st.rerun()
+
+
 with tab_full:
-    render_form("Full size pallet", st.session_state.get("full_locations", full_locations), "full")
+    render_form_with_list("Full size pallet", st.session_state.get("full_locations", full_locations), "full")
 
 with tab_small:
-    render_form("Small pallet", st.session_state.get("small_locations", small_locations), "small")
+    render_form_with_list("Small pallet", st.session_state.get("small_locations", small_locations), "small")
+
+with tab_aldi:
+    render_form_manual("Aldi", "aldi")
 
 # ----- PREVIEW -----
 st.divider()
