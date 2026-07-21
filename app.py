@@ -90,6 +90,15 @@ def parse_locations(text: str) -> list:
     return [line.strip() for line in text.strip().splitlines() if line.strip()]
 
 
+def safe_int(value, default=0):
+    try:
+        if value is None or str(value).strip() == "":
+            return default
+        return int(value)
+    except (ValueError, TypeError):
+        return default
+
+
 # ================== UI ==================
 st.set_page_config(
     page_title="Princraft Warehouse",
@@ -233,7 +242,7 @@ tab_full, tab_small, tab_aldi = st.tabs(["🟦 Full size pallet", "🟧 Small pa
 def render_form_with_list(pallet_label: str, available: list, key_prefix: str):
     next_free = get_next_free_location(available, used)
 
-    with st.form(f"form_{key_prefix}", clear_on_submit=False):
+    with st.form(f"form_{key_prefix}", clear_on_submit=True):
         st.subheader(f"New {pallet_label}")
 
         if next_free:
@@ -266,11 +275,11 @@ def render_form_with_list(pallet_label: str, available: list, key_prefix: str):
 
         col1, col2, col3 = st.columns(3)
         with col1:
-            qty_card = st.number_input("quantity card", min_value=0, step=1, value=0, key=f"card_{key_prefix}")
+            qty_card = st.text_input("quantity card", value="", placeholder="0", key=f"card_{key_prefix}")
         with col2:
-            qty_packs = st.number_input("quantity packs", min_value=0, step=1, value=0, key=f"packs_{key_prefix}")
+            qty_packs = st.text_input("quantity packs", value="", placeholder="0", key=f"packs_{key_prefix}")
         with col3:
-            total_boxes = st.number_input("total boxes", min_value=0, step=1, value=0, key=f"boxes_{key_prefix}")
+            total_boxes = st.text_input("total boxes", value="", placeholder="0", key=f"boxes_{key_prefix}")
 
         submitted = st.form_submit_button(f"➕ ADD {pallet_label.upper()}")
 
@@ -286,9 +295,9 @@ def render_form_with_list(pallet_label: str, available: list, key_prefix: str):
                 "Job number": job.strip(),
                 "Order number": order.strip(),
                 "Design number": design.strip(),
-                "quantity card": int(qty_card),
-                "quantity packs": int(qty_packs),
-                "total boxes": int(total_boxes)
+                "quantity card": safe_int(qty_card),
+                "quantity packs": safe_int(qty_packs),
+                "total boxes": safe_int(total_boxes)
             }
             current_df = pd.concat([current_df, pd.DataFrame([new_row])], ignore_index=True)
             save_data(current_df)
@@ -298,7 +307,7 @@ def render_form_with_list(pallet_label: str, available: list, key_prefix: str):
 
 
 def render_form_manual(pallet_label: str, key_prefix: str):
-    with st.form(f"form_{key_prefix}", clear_on_submit=False):
+    with st.form(f"form_{key_prefix}", clear_on_submit=True):
         st.subheader(f"New {pallet_label}")
 
         location = st.text_input(
@@ -313,11 +322,11 @@ def render_form_manual(pallet_label: str, key_prefix: str):
 
         col1, col2, col3 = st.columns(3)
         with col1:
-            qty_card = st.number_input("quantity card", min_value=0, step=1, value=0, key=f"card_{key_prefix}")
+            qty_card = st.text_input("quantity card", value="", placeholder="0", key=f"card_{key_prefix}")
         with col2:
-            qty_packs = st.number_input("quantity packs", min_value=0, step=1, value=0, key=f"packs_{key_prefix}")
+            qty_packs = st.text_input("quantity packs", value="", placeholder="0", key=f"packs_{key_prefix}")
         with col3:
-            total_boxes = st.number_input("total boxes", min_value=0, step=1, value=0, key=f"boxes_{key_prefix}")
+            total_boxes = st.text_input("total boxes", value="", placeholder="0", key=f"boxes_{key_prefix}")
 
         submitted = st.form_submit_button(f"➕ ADD {pallet_label.upper()}")
 
@@ -333,9 +342,9 @@ def render_form_manual(pallet_label: str, key_prefix: str):
                 "Job number": job.strip(),
                 "Order number": order.strip(),
                 "Design number": design.strip(),
-                "quantity card": int(qty_card),
-                "quantity packs": int(qty_packs),
-                "total boxes": int(total_boxes)
+                "quantity card": safe_int(qty_card),
+                "quantity packs": safe_int(qty_packs),
+                "total boxes": safe_int(total_boxes)
             }
             current_df = pd.concat([current_df, pd.DataFrame([new_row])], ignore_index=True)
             save_data(current_df)
