@@ -103,21 +103,24 @@ def safe_int(value, default=0):
 st.set_page_config(
     page_title="Princraft Warehouse",
     page_icon="📦",
-    layout="centered",
+    layout="wide",
     initial_sidebar_state="expanded"
 )
 
 st.markdown("""
 <style>
+    /* ===== base ===== */
     .stApp {
         background-color: #0f172a;
         color: #e2e8f0;
     }
     
     .block-container {
-        padding-top: 1.2rem;
-        padding-bottom: 2rem;
-        max-width: 900px;
+        padding-top: 0.8rem !important;
+        padding-bottom: 1.5rem !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        max-width: 1100px;
     }
     
     h1, h2, h3, .stMarkdown, .stCaption, label {
@@ -125,15 +128,16 @@ st.markdown("""
     }
     
     h1 {
-        font-size: 2rem !important;
+        font-size: 1.7rem !important;
         text-align: center;
-        margin-bottom: 0.3rem !important;
+        margin-bottom: 0.2rem !important;
     }
     
+    /* ===== buttons – big touch targets ===== */
     .stButton > button {
         width: 100%;
-        height: 3.8rem;
-        font-size: 1.35rem !important;
+        min-height: 3.6rem;
+        font-size: 1.25rem !important;
         font-weight: 700;
         border-radius: 12px;
         background-color: #3b82f6 !important;
@@ -144,48 +148,58 @@ st.markdown("""
         background-color: #2563eb !important;
     }
     
+    /* ===== inputs ===== */
     .stTextInput > div > div > input,
     .stNumberInput > div > div > input {
-        font-size: 1.25rem !important;
-        padding: 0.85rem 0.9rem !important;
+        font-size: 1.2rem !important;
+        padding: 0.8rem 0.85rem !important;
         border-radius: 10px !important;
         background-color: #1e293b !important;
         color: #f1f5f9 !important;
         border: 1px solid #334155 !important;
+        min-height: 3rem;
     }
     
     .stTextArea textarea {
-        font-size: 1.15rem !important;
-        line-height: 1.5 !important;
+        font-size: 1.1rem !important;
+        line-height: 1.45 !important;
         background-color: #1e293b !important;
         color: #f1f5f9 !important;
         border: 1px solid #334155 !important;
     }
     
+    /* selectbox */
+    div[data-baseweb="select"] > div {
+        background-color: #1e293b !important;
+        border-radius: 10px !important;
+        min-height: 3rem !important;
+        font-size: 1.15rem !important;
+    }
+    
+    /* form */
     div[data-testid="stForm"] {
         border: 2px solid #334155;
-        border-radius: 16px;
-        padding: 1.5rem 1.2rem;
+        border-radius: 14px;
+        padding: 1.2rem 1rem;
         background: #1e293b;
     }
     
     .stAlert {
-        font-size: 1.15rem !important;
-        padding: 1rem 1.1rem !important;
-        border-radius: 12px;
+        font-size: 1.1rem !important;
+        padding: 0.9rem 1rem !important;
+        border-radius: 10px;
     }
     
+    /* sidebar */
     section[data-testid="stSidebar"] {
         background-color: #0f172a;
-        min-width: 280px;
     }
-    
     section[data-testid="stSidebar"] * {
         color: #e2e8f0 !important;
     }
     
     .stDataFrame {
-        font-size: 1.05rem;
+        font-size: 1rem;
     }
     
     .stDownloadButton > button {
@@ -195,11 +209,60 @@ st.markdown("""
         background-color: #059669 !important;
     }
     
+    /* tabs – bigger on touch */
     button[data-baseweb="tab"] {
-        font-size: 1.15rem !important;
+        font-size: 1.05rem !important;
         font-weight: 600 !important;
-        padding: 0.8rem 1.2rem !important;
+        padding: 0.75rem 1rem !important;
     }
+    
+    /* ===== PHONE (portrait) ===== */
+    @media (max-width: 600px) {
+        h1 { font-size: 1.45rem !important; }
+        .block-container {
+            padding-left: 0.6rem !important;
+            padding-right: 0.6rem !important;
+        }
+        .stButton > button {
+            min-height: 3.4rem;
+            font-size: 1.15rem !important;
+        }
+        button[data-baseweb="tab"] {
+            font-size: 0.95rem !important;
+            padding: 0.65rem 0.7rem !important;
+        }
+    }
+    
+    /* ===== TABLET portrait ===== */
+    @media (min-width: 601px) and (max-width: 900px) {
+        h1 { font-size: 1.8rem !important; }
+        .stButton > button {
+            min-height: 3.8rem;
+            font-size: 1.3rem !important;
+        }
+    }
+    
+    /* ===== TABLET landscape / wide ===== */
+    @media (min-width: 901px) {
+        .block-container {
+            max-width: 1100px;
+            padding-left: 1.5rem !important;
+            padding-right: 1.5rem !important;
+        }
+        h1 { font-size: 2rem !important; }
+        .stButton > button {
+            min-height: 3.6rem;
+            font-size: 1.25rem !important;
+        }
+        /* form fields a bit tighter on wide screens */
+        div[data-testid="stForm"] {
+            padding: 1.4rem 1.4rem;
+        }
+    }
+    
+    /* hide streamlit branding a bit cleaner */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -290,21 +353,63 @@ def render_form_with_list(pallet_label: str, available: list, key_prefix: str):
             st.error("Please fill in all text fields.")
         else:
             current_df = load_data()
-            new_row = {
-                "Date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "Princraft warehouse location": final_location,
-                "Job number": job.strip(),
-                "Order number": order.strip(),
-                "Design number": design.strip(),
-                "quantity card": safe_int(qty_card),
-                "quantity packs": safe_int(qty_packs),
-                "total boxes": safe_int(total_boxes)
-            }
-            current_df = pd.concat([current_df, pd.DataFrame([new_row])], ignore_index=True)
-            save_data(current_df)
-            st.success(f"✅ {pallet_label} added at **{final_location}**")
-            st.balloons()
-            st.rerun()
+            used_locs = get_used_locations(current_df)
+            force = st.session_state.get(f"force_dup_{key_prefix}", False)
+
+            if final_location in used_locs and not force:
+                st.session_state[f"pending_row_{key_prefix}"] = {
+                    "Date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "Princraft warehouse location": final_location,
+                    "Job number": job.strip(),
+                    "Order number": order.strip(),
+                    "Design number": design.strip(),
+                    "quantity card": safe_int(qty_card),
+                    "quantity packs": safe_int(qty_packs),
+                    "total boxes": safe_int(total_boxes)
+                }
+                st.session_state[f"dup_warning_{key_prefix}"] = final_location
+            else:
+                new_row = {
+                    "Date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "Princraft warehouse location": final_location,
+                    "Job number": job.strip(),
+                    "Order number": order.strip(),
+                    "Design number": design.strip(),
+                    "quantity card": safe_int(qty_card),
+                    "quantity packs": safe_int(qty_packs),
+                    "total boxes": safe_int(total_boxes)
+                }
+                current_df = pd.concat([current_df, pd.DataFrame([new_row])], ignore_index=True)
+                save_data(current_df)
+                st.session_state.pop(f"force_dup_{key_prefix}", None)
+                st.session_state.pop(f"dup_warning_{key_prefix}", None)
+                st.session_state.pop(f"pending_row_{key_prefix}", None)
+                st.success(f"✅ {pallet_label} added at **{final_location}**")
+                st.balloons()
+                st.rerun()
+
+    # duplicate confirmation UI
+    if st.session_state.get(f"dup_warning_{key_prefix}"):
+        loc = st.session_state[f"dup_warning_{key_prefix}"]
+        st.warning(f"Location **{loc}** is already used. Add anyway?")
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("✅ Yes, add anyway", key=f"force_yes_{key_prefix}", use_container_width=True):
+                pending = st.session_state.get(f"pending_row_{key_prefix}")
+                if pending:
+                    current_df = load_data()
+                    current_df = pd.concat([current_df, pd.DataFrame([pending])], ignore_index=True)
+                    save_data(current_df)
+                st.session_state.pop(f"dup_warning_{key_prefix}", None)
+                st.session_state.pop(f"pending_row_{key_prefix}", None)
+                st.session_state.pop(f"force_dup_{key_prefix}", None)
+                st.success(f"✅ Added at **{loc}** (duplicate allowed)")
+                st.rerun()
+        with c2:
+            if st.button("❌ Cancel", key=f"force_no_{key_prefix}", use_container_width=True):
+                st.session_state.pop(f"dup_warning_{key_prefix}", None)
+                st.session_state.pop(f"pending_row_{key_prefix}", None)
+                st.rerun()
 
 
 def render_form_manual(pallet_label: str, key_prefix: str):
@@ -337,21 +442,59 @@ def render_form_manual(pallet_label: str, key_prefix: str):
             st.error("Please fill in all text fields.")
         else:
             current_df = load_data()
-            new_row = {
-                "Date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "Princraft warehouse location": final_location,
-                "Job number": job.strip(),
-                "Order number": order.strip(),
-                "Design number": design.strip(),
-                "quantity card": safe_int(qty_card),
-                "quantity packs": safe_int(qty_packs),
-                "total boxes": safe_int(total_boxes)
-            }
-            current_df = pd.concat([current_df, pd.DataFrame([new_row])], ignore_index=True)
-            save_data(current_df)
-            st.success(f"✅ {pallet_label} added at **{final_location}**")
-            st.balloons()
-            st.rerun()
+            used_locs = get_used_locations(current_df)
+
+            if final_location in used_locs:
+                st.session_state[f"pending_row_{key_prefix}"] = {
+                    "Date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "Princraft warehouse location": final_location,
+                    "Job number": job.strip(),
+                    "Order number": order.strip(),
+                    "Design number": design.strip(),
+                    "quantity card": safe_int(qty_card),
+                    "quantity packs": safe_int(qty_packs),
+                    "total boxes": safe_int(total_boxes)
+                }
+                st.session_state[f"dup_warning_{key_prefix}"] = final_location
+            else:
+                new_row = {
+                    "Date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "Princraft warehouse location": final_location,
+                    "Job number": job.strip(),
+                    "Order number": order.strip(),
+                    "Design number": design.strip(),
+                    "quantity card": safe_int(qty_card),
+                    "quantity packs": safe_int(qty_packs),
+                    "total boxes": safe_int(total_boxes)
+                }
+                current_df = pd.concat([current_df, pd.DataFrame([new_row])], ignore_index=True)
+                save_data(current_df)
+                st.session_state.pop(f"dup_warning_{key_prefix}", None)
+                st.session_state.pop(f"pending_row_{key_prefix}", None)
+                st.success(f"✅ {pallet_label} added at **{final_location}**")
+                st.balloons()
+                st.rerun()
+
+    if st.session_state.get(f"dup_warning_{key_prefix}"):
+        loc = st.session_state[f"dup_warning_{key_prefix}"]
+        st.warning(f"Location **{loc}** is already used. Add anyway?")
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("✅ Yes, add anyway", key=f"force_yes_{key_prefix}", use_container_width=True):
+                pending = st.session_state.get(f"pending_row_{key_prefix}")
+                if pending:
+                    current_df = load_data()
+                    current_df = pd.concat([current_df, pd.DataFrame([pending])], ignore_index=True)
+                    save_data(current_df)
+                st.session_state.pop(f"dup_warning_{key_prefix}", None)
+                st.session_state.pop(f"pending_row_{key_prefix}", None)
+                st.success(f"✅ Added at **{loc}** (duplicate allowed)")
+                st.rerun()
+        with c2:
+            if st.button("❌ Cancel", key=f"force_no_{key_prefix}", use_container_width=True):
+                st.session_state.pop(f"dup_warning_{key_prefix}", None)
+                st.session_state.pop(f"pending_row_{key_prefix}", None)
+                st.rerun()
 
 
 with tab_full:
@@ -369,8 +512,18 @@ st.subheader("Recent entries")
 
 df = load_data()
 
-# Start new list button
-col_a, col_b = st.columns([3, 1])
+# Undo last + Start new list
+col_a, col_b = st.columns(2)
+with col_a:
+    if st.button("↩️ Undo last entry", use_container_width=True, help="Remove the last added pallet"):
+        current_df = load_data()
+        if not current_df.empty:
+            current_df = current_df.iloc[:-1]
+            save_data(current_df)
+            st.success("Last entry removed")
+            st.rerun()
+        else:
+            st.info("Nothing to undo")
 with col_b:
     if st.button("🗑️ Start new list", use_container_width=True, help="Clear all data and start fresh"):
         st.session_state["confirm_clear"] = True
