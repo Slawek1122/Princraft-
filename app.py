@@ -10,7 +10,6 @@ from email.mime.text import MIMEText
 from email import encoders
 
 COLUMNS = [
-    "Date",
     "Princraft warehouse location",
     "Job number",
     "Order number",
@@ -358,7 +357,6 @@ def render_form_with_list(pallet_label: str, available: list, key_prefix: str):
 
             if final_location in used_locs and not force:
                 st.session_state[f"pending_row_{key_prefix}"] = {
-                    "Date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     "Princraft warehouse location": final_location,
                     "Job number": job.strip(),
                     "Order number": order.strip(),
@@ -370,7 +368,6 @@ def render_form_with_list(pallet_label: str, available: list, key_prefix: str):
                 st.session_state[f"dup_warning_{key_prefix}"] = final_location
             else:
                 new_row = {
-                    "Date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     "Princraft warehouse location": final_location,
                     "Job number": job.strip(),
                     "Order number": order.strip(),
@@ -446,7 +443,6 @@ def render_form_manual(pallet_label: str, key_prefix: str):
 
             if final_location in used_locs:
                 st.session_state[f"pending_row_{key_prefix}"] = {
-                    "Date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     "Princraft warehouse location": final_location,
                     "Job number": job.strip(),
                     "Order number": order.strip(),
@@ -458,7 +454,6 @@ def render_form_manual(pallet_label: str, key_prefix: str):
                 st.session_state[f"dup_warning_{key_prefix}"] = final_location
             else:
                 new_row = {
-                    "Date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     "Princraft warehouse location": final_location,
                     "Job number": job.strip(),
                     "Order number": order.strip(),
